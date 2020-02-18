@@ -39,8 +39,9 @@ public class OperacionServiceImpl implements OperacionService{
       do{
         pageable = PageRequest.of(i-1, 50);
         page = this.findAllPageable(pageable);
-        logger.info("Eliminando página "+i);
+        logger.info("Eliminando...");
         logger.info(page.getContent().toString());
+        operacionRepository.deleteAll(page.getContent());
         i++;
       }while(i-1 <= page.getTotalPages());
     }
