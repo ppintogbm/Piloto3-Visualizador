@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -29,11 +30,19 @@ public class OperacionServiceImpl implements OperacionService{
     operacionRepository.deleteAll();
   }
 
-  @Override
-  public void clear(Pageable pageable) {
-    Page<Operacion> page = operacionRepository.findAll(pageable);
-    logger.info("Deleting page... ");
-    logger.info("Pagina: ",page.toString());
-    operacionRepository.deleteAll();
+  public void clearTop(){
+    if(operacionRepository.count() > 50){
+      logger.info("Eliminando registros por encima del 50...");
+      int i = 2;
+      Page<Operacion> page;
+      PageRequest pageable;
+      do{
+        pageable = PageRequest.of(i-1, 50);
+        page = this.findAllPageable(pageable);
+        logger.info("Eliminando página "+i);
+        logger.info(page.getContent().toString());
+        i++;
+      }while(i-1 <= page.getTotalPages());
+    }
   }
 }

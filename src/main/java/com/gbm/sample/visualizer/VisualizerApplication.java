@@ -29,16 +29,7 @@ public class VisualizerApplication {
 	@Scheduled(fixedRateString = "PT30S")
 	public void cleanDB(){
 		logger.info("Iniciando DB Cleaner...");
-		PageRequest pageable = PageRequest.of(0, 5);
-    Page<Operacion> operacionPage = operacionService.findAllPageable(pageable);
-    
-		int totalPages = operacionPage.getTotalPages();
-		for(int i = totalPages; i > 10; i--){
-			logger.info("Eliminando página: "+i);
-			pageable = PageRequest.of(i -1, 5);
-			operacionService.clear(pageable);
-		}
-
+		operacionService.clearTop();
 		logger.info("Terminando DB Cleaner...");
 	}
 
