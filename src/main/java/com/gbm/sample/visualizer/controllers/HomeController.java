@@ -36,7 +36,7 @@ public class HomeController{
       List<Integer> pageNumbers = IntStream.rangeClosed(1,totalPages).boxed().collect(Collectors.toList());
       model.addAttribute("pageNumbers", pageNumbers);
     }
-    model.addAttribute("actualPage", page);
+    model.addAttribute("page", page);
     model.addAttribute("operacionList", operacionPage.getContent());
 
     return "data";
