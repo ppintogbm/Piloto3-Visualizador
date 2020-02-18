@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels: 
+    app: jenkins-ephemeral
+spec:
+  volumes:
+    - name: kaniko-cache
+      persistentVolumeClaim:
+          claimName: kaniko-cache
+  serviceAccount: jenkins
+  containers:
+    - name: origin
+      image: openshift/origin-cli
+      command:
+        - cat
+      tty: true
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "32Mi"
+        limits:
+          cpu: "1000m"
+          memory: "512Mi"
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:debug-v0.15.0
+      imagePullPolicy: Always
+      command:
+        - /busybox/cat
+      env:
+        - name: PATH
+          value: "$PATH:/busybox:/kaniko"
+        - name: DOCKER_CONFIG
+          value: /kaniko/.docker
+      tty: true
+      securityContext:
+          privileged: true
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "512Mi"
+        limits:
+          cpu: "2000m"
+          memory: "2048Mi"
+      volumeMounts:
+        - name: kaniko-cache
+          mountPath: /cache
+    - name: maven
+      image: maven:3.6.3-jdk-8
+      command: 
+        - "/bin/bash"
+        - "-c"
+      args: 
+        - cat
+      tty: true
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "512Mi"
+        limits:
+          cpu: "2000m"
+          memory: "2048Mi"

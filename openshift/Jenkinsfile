@@ -1,0 +1,89 @@
+pipeline{
+	agent {
+		kubernetes{
+			cloud "openshift"
+			label "maven-build"
+			yamlFile  "cicd/openshift/pod-kaniko.yaml"		
+    }
+  }
+	parameters{
+    string(name: "app", description: "Application Name overrides")
+	}
+	stages{
+		stage('Prepare'){
+			steps{
+				script{
+					env.tag = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+				}
+				container('origin'){
+					script{
+						openshift.withCluster(){
+							openshift.withProject(){
+								def imagestream = openshift.selector("imagestream/${params.app}-visualizer")
+								if(!imagestream.exists()){
+									imagestream = openshift.apply([apiVersion: 'v1',kind: 'ImageStream', metadata: [name: "${params.app}-visualizer", labels: [app: "${params.app}" ]]])
+								}
+								env.repository = imagestream.object().status.dockerImageRepository
+								env.registry = env.repository.split("/")[0]
+								echo "Visualizer image repo: ${env.repository}"
+							}
+						}
+					}
+				}
+			}
+		}
+		stage('Build jar'){
+			steps{
+				container('maven'){
+					sh "mvn -B clean package"
+				}
+			}
+		}
+		stage('Build Image'){
+			environment{
+				REGISTRY="${env.registry}"
+				REPOSITORY="${env.repository}"
+				TAG="${env.tag}"
+			}
+			steps{
+				container('kaniko'){
+					sh 	'''#!/busybox/sh
+								mkdir -pv /kaniko/.docker
+								echo "{\\"auths\\":{\\"$REGISTRY\\":{\\"username\\":\\"openshift\\",\\"password\\":\\"$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)\\"}}}" | tee /kaniko/.docker/config.json
+								echo "Building $REPOSITORY"
+								/kaniko/executor --context="dir://`pwd`" --destination=$REPOSITORY:$TAG --destination=$REPOSITORY:latest --cache=true --cache-ttl=24h
+						'''
+				}
+			}
+		}
+		stage('Deploy Image on Openshift'){
+			steps{
+				container('origin'){
+          script{
+            openshift.withCluster(){
+              openshift.withProject(){
+                def applicationName = !params.appOverride? "calculadora":params.appOverride
+                def deployment = openshift.selector('dc',[template: 'calculadora-visualizer', app: applicationName])
+                if(!deployment.exists()){
+                  echo "Deploying application component: Visualizer, with Application name: ${applicationName}..."
+                  openshift.apply(openshift.process("-f","templates/template.yaml","-p=APP=${applicationName}","-p=IMAGE=${params.app}-visualizer"))
+                  deployment = openshift.selector('dc',[template: 'calculadora-visualizer', app: applicationName])
+                }
+                def latestVersion = deployment.object().status.latestVersion
+                def deploymentName = deployment.object().metadata.name
+                echo "Checking application component status: ${latestVersion}..."
+                def rc = openshift.selector('rc',"${deploymentName}-${latestVersion}")
+                timeout(time:10, unit: 'MINUTES'){
+                  rc.untilEach(1){
+                    def rcMap = it.object()
+                    return (rcMap.status.replicas.equals(rcMap.status.readyReplicas))
+                  }
+                }
+              }
+            }
+          }
+				}
+			}
+		}
+	}
+}

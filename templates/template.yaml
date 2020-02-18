@@ -1,0 +1,115 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: calculadora-visualizer
+  description: "Template to deploy Piloto #3 visualizer"
+  tags: ibmcom/ace
+labels:
+  template: calculadora-visualizer
+  version: "1.0"
+  app: ${APP}
+parameters:
+  - description: Application deployment name
+    displayName: Application
+    required: true
+    name: APP
+    value: 'calculadora'
+  - description: 'The base name assigned to all of the objects defined in this template.'
+    displayName: Name
+    required: true
+    name: NAME
+    value: visualizer
+  - description: The OpenShift Namespace where the ImageStream resides.
+    displayName: Namespace
+    name: NAMESPACE
+    required: true
+    value: piloto3
+  - description: The ImageStream name
+    displayName: ImageStream
+    name: IMAGE
+    required: true
+    value: visualizer
+  - description: Service Account with ibm-anyuid-scc configured
+    displayName: Service Account 
+    name: SA
+    required: true
+    value: default
+objects:
+  - kind: DeploymentConfig
+    apiVersion: v1
+    metadata:
+      name: ${APP}-${NAME}
+    spec:
+      replicas: 1
+      selector:
+        template: calculadora-visualizer
+        version: "1.0"
+        app: ${APP}
+      template:
+        metadata:
+          labels:
+            template: calculadora-visualizer
+            version: "1.0"
+            app: ${APP}
+        spec:
+          serviceAccount: ${SA}
+          containers:
+            - name: springboot
+              image: " "
+              imagePullPolicy: "Always"
+              env:
+                - name: DB_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      name: ${APP}-db
+                      key: dbname
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: ${APP}-db
+                      key: password
+                - name: DB_USER
+                  value: db2inst1
+              args:
+                - "--spring.datasource.url=jdbc:db2://${APP}-db:50000/${DB_NAME}"
+                - "--spring.datasource.username=${DB_USER}"
+                - "--spring.datasource.password=${DB_PASSWORD}"
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+                  name: http
+              livenessProbe:
+                httpGet:
+                  path: /
+                  port: http
+              readinessProbe:
+                httpGet:
+                  path: /
+                  port: http
+      triggers:
+        - type: ImageChange
+          imageChangeParams:
+            containerNames:
+              - springboot
+            automatic: true
+            from:
+              kind: ImageStreamTag
+              name: ${IMAGE}:latest
+              namespace: ${NAMESPACE}
+        - type: ConfigChange
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: ${APP}-${NAME}
+    labels:
+      app: ${APP}
+    spec:
+      selector:
+        template: calculadora-visualizer
+        version: "1.0"
+        app: ${APP}
+      type: ClusterIP
+      ports:
+        - port: 8080
+          protocol: TCP
+          name: 8080-tcp
