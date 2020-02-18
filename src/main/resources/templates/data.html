@@ -95,11 +95,10 @@
       </tr>
     </table>
     <nav aria-label="Pagination">
-      <span th:text="${page}" />
       <ul class="pagination">
           <li th:each="pageNumber : ${pageNumbers}" >
-              <span th:text="${pageNumber}" />
-              <a th:href="@{|?page=${pageNumber}|}" th:text=${pageNumber} th:classappend="${pageNumber eq page}?'active'">1</a>
+              <a th:if="${page == pageNumber}" th:href="@{|?page=${pageNumber}|}" th:text="${pageNumber}" th:classappend="active">1</a>
+              <a th:unless="${page == pageNumber}" th:href="@{|?page=${pageNumber}|}" th:text="${pageNumber}">1</a>
           </li>
       </ul>
     </nav>
