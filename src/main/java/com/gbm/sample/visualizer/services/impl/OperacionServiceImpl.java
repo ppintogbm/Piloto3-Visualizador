@@ -33,7 +33,7 @@ public class OperacionServiceImpl implements OperacionService{
   public void clear(Pageable pageable) {
     Page<Operacion> page = operacionRepository.findAll(pageable);
     logger.info("Deleting page... ");
-    logger.info("Pagina: ",page);
+    logger.info("Pagina: ",page.toString());
     operacionRepository.deleteAll();
   }
 }
