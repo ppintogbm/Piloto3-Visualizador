@@ -135,11 +135,9 @@ table.blueTable tfoot .links a{
       </tr>
     </table>
     <nav aria-label="Pagination">
-      <ul class="pagination">
-          <li th:each="pageNumber : ${pageNumbers}" >
-              <a th:href="@{|?page=${pageNumber}|}" th:text="${pageNumber}" th:classappend="${pageNumber==actualPage}?'active'">1</a>
-          </li>
-      </ul>
+      <div class="pagination">
+        <a th:each="pageNumber : ${pageNumbers}"  th:href="@{|?page=${pageNumber}|}" th:text="${pageNumber}" th:classappend="${pageNumber==actualPage}?'active'">1</a>
+      </div>
     </nav>
     <div th:if="${!(operacionList.empty)}"><a th:href="@{?clear=true}" onclick="confirm('Desea eliminar toda la información registrada?')">Limpiar Registros</a></div>
   </section>
