@@ -8,6 +8,9 @@ spec:
     - name: kaniko-cache
       persistentVolumeClaim:
           claimName: kaniko-cache
+    - name: maven-repo
+      persistentVolumeClaim:
+          claimName: maven-repo
   serviceAccount: jenkins
   containers:
     - name: origin
@@ -53,6 +56,9 @@ spec:
       args: 
         - cat
       tty: true
+      volumeMounts:
+        - name: maven-repo
+          mountPath: /root/.m2
       resources:
         requests:
           cpu: "100m"
