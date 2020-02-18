@@ -1,0 +1,6 @@
+com/gbm/sample/visualizer/interfaces/OperacionRepository.class
+com/gbm/sample/visualizer/controllers/HomeController.class
+com/gbm/sample/visualizer/services/OperacionService.class
+com/gbm/sample/visualizer/entities/Operacion.class
+com/gbm/sample/visualizer/VisualizerApplication.class
+com/gbm/sample/visualizer/services/impl/OperacionServiceImpl.class
