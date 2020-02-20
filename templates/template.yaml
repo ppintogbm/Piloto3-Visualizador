@@ -7,7 +7,7 @@ metadata:
 labels:
   template: calculadora-visualizer
   templateVersion: "1.0"
-  app: ${APP}-visualizer-visualizer
+  app: ${APP}-visualizer
 parameters:
   - description: Application deployment name
     displayName: Application
