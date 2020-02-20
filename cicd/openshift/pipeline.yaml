@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: calculadora-front-pipeline
+spec:
+  strategy:
+    jenkinsPipelineStrategy:
+      env:
+        - name: app
+          value: calculadora
+      jenkinsfilePath: cicd/openshift/Jenkinsfile
+      type: JenkinsPipeline
+  source:
+    git: 
+      ref: Istio-tests
+      uri: https://github.com/ppintogbm/Piloto3-Visualizador.git
+    type: Git
