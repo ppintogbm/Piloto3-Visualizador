@@ -63,7 +63,7 @@ pipeline{
             openshift.withCluster(){
               openshift.withProject(){
                 def applicationName = !params.appOverride? "calculadora":params.appOverride
-                def deployment = openshift.selector('dc',"${applicationName}-visualizer-canary"])
+                def deployment = openshift.selector('dc',"${applicationName}-visualizer-canary")
                 if(!deployment.exists()){
                   echo "Deploying application component: Visualizer, with Application name: ${applicationName}..."
                   openshift.apply(openshift.process("-f","templates/template.yaml","-p=APP=${applicationName}","-p=IMAGE=${params.app}-visualizer","-p=NAMESPACE=${openshift.project()}"))
