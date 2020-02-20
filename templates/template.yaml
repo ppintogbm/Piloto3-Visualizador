@@ -6,8 +6,8 @@ metadata:
   tags: ibmcom/ace
 labels:
   template: calculadora-visualizer
-  version: "1.0"
-  app: ${APP}
+  templateVersion: "1.0"
+  app: ${APP}-visualizer
 parameters:
   - description: Application deployment name
     displayName: Application
@@ -38,19 +38,18 @@ objects:
   - kind: DeploymentConfig
     apiVersion: v1
     metadata:
-      name: ${APP}-${NAME}
+      name: ${APP}-${NAME}-prod
     spec:
       replicas: 1
       selector:
-        template: calculadora-visualizer
-        version: "1.0"
         app: ${APP}
       template:
         metadata:
           labels:
-            template: calculadora-visualizer
-            version: "1.0"
             app: ${APP}
+            version: prod
+          annotations: 
+            sidecar.istio.io/inject: 'true'
         spec:
           serviceAccount: ${SA}
           containers:
@@ -97,6 +96,67 @@ objects:
               name: ${IMAGE}:latest
               namespace: ${NAMESPACE}
         - type: ConfigChange
+  - kind: DeploymentConfig
+    apiVersion: v1
+    metadata:
+      name: ${APP}-${NAME}-canary
+    spec:
+      replicas: 1
+      selector:
+        app: ${APP}
+      template:
+        metadata:
+          labels:
+            app: ${APP}
+            version: canary
+          annotations: 
+            sidecar.istio.io/inject: 'true'
+        spec:
+          serviceAccount: ${SA}
+          containers:
+            - name: springboot
+              image: " "
+              imagePullPolicy: "Always"
+              env:
+                - name: DB_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      name: ${APP}-db
+                      key: dbname
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: ${APP}-db
+                      key: password
+                - name: DB_USER
+                  value: db2inst1
+              args:
+                - "--spring.datasource.url=jdbc:db2://${APP}-db:50000/${DB_NAME}"
+                - "--spring.datasource.username=${DB_USER}"
+                - "--spring.datasource.password=${DB_PASSWORD}"
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+                  name: http
+              livenessProbe:
+                httpGet:
+                  path: /
+                  port: http
+              readinessProbe:
+                httpGet:
+                  path: /
+                  port: http
+      triggers:
+        - type: ImageChange
+          imageChangeParams:
+            containerNames:
+              - springboot
+            automatic: true
+            from:
+              kind: ImageStreamTag
+              name: ${IMAGE}:canary
+              namespace: ${NAMESPACE}
+        - type: ConfigChange 
   - kind: Service
     apiVersion: v1
     metadata:
@@ -105,11 +165,9 @@ objects:
       app: ${APP}
     spec:
       selector:
-        template: calculadora-visualizer
-        version: "1.0"
         app: ${APP}
       type: ClusterIP
       ports:
         - port: 8080
           protocol: TCP
-          name: 8080-tcp
+          name: http-8080
