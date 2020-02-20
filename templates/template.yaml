@@ -7,7 +7,7 @@ metadata:
 labels:
   template: calculadora-visualizer
   templateVersion: "1.0"
-  app: ${APP}-visualizer
+  app: ${APP}-visualizer-visualizer
 parameters:
   - description: Application deployment name
     displayName: Application
@@ -42,11 +42,11 @@ objects:
     spec:
       replicas: 1
       selector:
-        app: ${APP}
+        app: ${APP}-visualizer
       template:
         metadata:
           labels:
-            app: ${APP}
+            app: ${APP}-visualizer
             version: prod
           annotations: 
             sidecar.istio.io/inject: 'true'
@@ -103,11 +103,11 @@ objects:
     spec:
       replicas: 1
       selector:
-        app: ${APP}
+        app: ${APP}-visualizer
       template:
         metadata:
           labels:
-            app: ${APP}
+            app: ${APP}-visualizer
             version: canary
           annotations: 
             sidecar.istio.io/inject: 'true'
@@ -162,10 +162,10 @@ objects:
     metadata:
       name: ${APP}-${NAME}
     labels:
-      app: ${APP}
+      app: ${APP}-visualizer
     spec:
       selector:
-        app: ${APP}
+        app: ${APP}-visualizer
       type: ClusterIP
       ports:
         - port: 8080
