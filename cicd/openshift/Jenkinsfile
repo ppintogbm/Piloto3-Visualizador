@@ -126,7 +126,7 @@ pipeline{
 				container('origin'){
 					script{
 						openshift.withCluster(){
-							openshift.withProject(env.project){
+							openshift.withProject("${env.project}"){
 								echo "Promoting canary to prod"
 								echo "Tagging ${env.repository.split('/')[2]}:${env.tag} as ${env.repository.split('/')[2]}:latest"
 								openshift.tag("${env.repository.split('/')[2]}:${env.tag}","${env.repository.split('/')[2]}:latest");
