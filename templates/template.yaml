@@ -7,7 +7,7 @@ metadata:
 labels:
   template: calculadora-visualizer
   templateVersion: "1.0"
-  app: ${APP}-visualizer
+  app: ${APP}-${NAME}
 parameters:
   - description: Application deployment name
     displayName: Application
@@ -42,11 +42,11 @@ objects:
     spec:
       replicas: 1
       selector:
-        app: ${APP}-visualizer
+        app: ${APP}-${NAME}
       template:
         metadata:
           labels:
-            app: ${APP}-visualizer
+            app: ${APP}-${NAME}
             version: prod
           annotations: 
             sidecar.istio.io/inject: 'true'
@@ -103,11 +103,11 @@ objects:
     spec:
       replicas: 1
       selector:
-        app: ${APP}-visualizer
+        app: ${APP}-${NAME}
       template:
         metadata:
           labels:
-            app: ${APP}-visualizer
+            app: ${APP}-${NAME}
             version: canary
           annotations: 
             sidecar.istio.io/inject: 'true'
@@ -161,11 +161,9 @@ objects:
     apiVersion: v1
     metadata:
       name: ${APP}-${NAME}
-    labels:
-      app: ${APP}-visualizer
     spec:
       selector:
-        app: ${APP}-visualizer
+        app: ${APP}-${NAME}
       type: ClusterIP
       ports:
         - port: 8080
@@ -177,6 +175,8 @@ objects:
       name: ${APP}-${NAME}
     spec:
       hosts:
+        - "*"
+      gateways:
         - ${APP}-${NAME}
       http:
         - match:
@@ -187,13 +187,13 @@ objects:
                 host: ${APP}-${NAME}
                 subset: prod
                 port:
-                  number: 7800
+                  number: 8080
               weight: 100
             - destination:
                 host: ${APP}-${NAME}
                 subset: canary
                 port:
-                  number: 7800
+                  number: 8080
               weight: 0
   - kind: DestinationRule
     apiVersion: networking.istio.io/v1alpha3
@@ -208,3 +208,14 @@ objects:
       - name: canary
         labels:
           version: canary
+#pendiente
+  # - kind: Gateway
+  #   apiVersion: networking.istio.io/v1alpha3
+  #   metadata:
+  #     name: ${APP}-${NAME}
+  #   spec:
+  #     selector:
+  #       istio: ingressgateway
+  #     servers:
+  #       hosts:
+  #         - 
