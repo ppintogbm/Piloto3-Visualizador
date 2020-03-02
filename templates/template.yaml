@@ -171,3 +171,40 @@ objects:
         - port: 8080
           protocol: TCP
           name: http-8080
+  - kind: VirtualService
+    apiVersion: networking.istio.io/v1alpha3
+    metadata:
+      name: ${APP}-${NAME}
+    spec:
+      hosts:
+        - ${APP}-${NAME}
+      http:
+        - match:
+            - uri: 
+                prefix: /
+          route:
+            - destination:
+                host: ${APP}-${NAME}
+                subset: prod
+                port:
+                  number: 7800
+              weight: 100
+            - destination:
+                host: ${APP}-${NAME}
+                subset: canary
+                port:
+                  number: 7800
+              weight: 0
+  - kind: DestinationRule
+    apiVersion: networking.istio.io/v1alpha3
+    metadata:
+      name: ${APP}-${NAME}
+    spec:
+      host: ${APP}-${NAME}
+      subsets:
+      - name: prod
+        labels:
+          version: prod
+      - name: canary
+        labels:
+          version: canary

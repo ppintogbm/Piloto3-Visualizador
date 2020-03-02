@@ -7,22 +7,26 @@ pipeline{
     }
   }
 	parameters{
-    string(name: "app", description: "Application Name overrides")
+    string(name: "app", description: "Application Name overrides.")
+		string(name: "project", description: "Destination project name.")
 	}
 	stages{
 		stage('Prepare'){
 			steps{
 				script{
 					env.tag = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+					env.project = !params.project?"${openshift.project()}":params.project
+					env.app = !params.app? "calculadora":params.app
 				}
 				container('origin'){
 					script{
 						openshift.withCluster(){
-							openshift.withProject(){
+							openshift.withProject("${env.project}"){
 								def imagestream = openshift.selector("imagestream/${params.app}-visualizer")
 								if(!imagestream.exists()){
 									imagestream = openshift.apply([apiVersion: 'v1',kind: 'ImageStream', metadata: [name: "${params.app}-visualizer", labels: [app: "${params.app}" ]]])
 								}
+								env.imagestream = imagestream.object()
 								env.repository = imagestream.object().status.dockerImageRepository
 								env.registry = env.repository.split("/")[0]
 								echo "Visualizer image repo: ${env.repository}"
@@ -61,7 +65,7 @@ pipeline{
 				container('origin'){
           script{
             openshift.withCluster(){
-              openshift.withProject(){
+              openshift.withProject("${env.project}"){
                 def applicationName = !params.appOverride? "calculadora":params.appOverride
                 def deployment = openshift.selector('dc',"${applicationName}-visualizer-canary")
                 if(!deployment.exists()){
@@ -84,6 +88,79 @@ pipeline{
               }
             }
           }
+				}
+			}
+		}
+		stage("Enable Canary Release"){
+			when{
+				expression{
+						return !env.exit;
+				}
+			}
+			steps{
+				container('origin'){
+					script{
+						openshift.withCluster(){
+							openshift.withProject("${env.project}"){
+								echo "Enabling canary..."
+								def vs = openshift.selector('vs',"${env.app}-visualizer").object()
+								vs.spec.http[0].route[0].weight=50
+								vs.spec.http[0].route[1].weight=50
+								openshift.apply(vs)
+							}
+						}
+					}
+				}
+			}
+		}
+		stage("Promote"){
+			when{
+				expression{
+						return !env.exit;
+				}
+			}
+			input{
+				message "Promote to next env?"
+			}
+			steps{
+				container('origin'){
+					script{
+						openshift.withCluster(){
+							openshift.withProject(env.project){
+								echo "Promoting canary to prod"
+								echo "Tagging ${env.repository.split('/')[2]}:${env.tag} as ${env.repository.split('/')[2]}:latest"
+								openshift.tag("${env.repository.split('/')[2]}:${env.tag}","${env.repository.split('/')[2]}:latest");
+								def deployment = openshift.selector('dc',"${env.app}-visualizer-prod")
+								def latestVersion = deployment.object().status.latestVersion
+								def deploymentName = deployment.object().metadata.name
+								echo "Checking application component status: ${latestVersion}..."
+								def rc = openshift.selector('rc',"${deploymentName}-${latestVersion}")
+								timeout(time:10, unit: 'MINUTES'){
+									rc.untilEach(1){
+										def rcMap = it.object()
+										return (rcMap.status.replicas.equals(rcMap.status.readyReplicas))
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	post{
+		always{
+			container('origin'){
+				script{
+					openshift.withCluster(){
+						openshift.withProject(env.project){
+							echo "Disabling canary..."
+							def vs = openshift.selector('vs',"${env.app}-visualizer").object()
+							vs.spec.http[0].route[0].weight=100
+							vs.spec.http[0].route[1].weight=0
+							openshift.apply(vs)
+						}
+					}
 				}
 			}
 		}
