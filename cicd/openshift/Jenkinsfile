@@ -7,8 +7,9 @@ pipeline{
     }
   }
 	parameters{
-    string(name: "app", description: "Application Name overrides.")
+    string(name: "app", description: "Application name overrides.")
 		string(name: "project", description: "Destination project name.")
+		string(name: "hostname", description: "Application hostname.")
 	}
 	stages{
 		stage('Prepare'){
@@ -70,7 +71,7 @@ pipeline{
                 def deployment = openshift.selector('dc',"${applicationName}-visualizer-canary")
                 if(!deployment.exists()){
                   echo "Deploying application component: Visualizer, with Application name: ${applicationName}..."
-                  openshift.apply(openshift.process("-f","templates/template.yaml","-p=APP=${applicationName}","-p=IMAGE=${params.app}-visualizer","-p=NAMESPACE=${openshift.project()}"))
+                  openshift.apply(openshift.process("-f","templates/template.yaml","-p=APP=${applicationName}","-p=IMAGE=${params.app}-visualizer","-p=NAMESPACE=${openshift.project()}", "-p=HOSTNAME=${params.hostname}"))
                   deployment = openshift.selector('dc',"${applicationName}-visualizer-canary")
                 }
 								echo "Tagging ${env.repository.split('/')[2]}:${env.tag} as ${env.repository.split('/')[2]}:canary"
